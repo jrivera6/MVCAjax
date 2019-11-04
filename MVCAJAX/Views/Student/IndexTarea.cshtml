@@ -1,0 +1,287 @@
+﻿@model List<MVCAJAX.Models.StudentModel>
+@{
+    ViewBag.Title = "IndexTarea";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="col-md-12">
+    <h1 class="text-center">Mantenimiento de Estudiantes</h1>
+    <div class="row" style="margin-top:2%">
+        <div class="col-md-10">
+            <div class="form-group col-md-4">
+                <input class="form-control" type="text" id="myInput" placeholder="Nombre o apellidos" />
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" role="button" id="btnSearch" type="button">BUSCAR</button>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <input class="btn btn-info" type="button" value="Nuevo estudiante" data-toggle="modal" data-target="#myModal" />
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nuevo Estudiante</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <input id="StudentId" type="hidden" />
+                        <div class="form-group">
+                            <label for="StudentCode">Student Code</label>
+                            <input type="text" class="form-control" id="StudentCode" placeholder="Student Code" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="StudentCode">Student Name</label>
+                            <input type="text" class="form-control" id="StudentName" placeholder="Student Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="StudentCode">Student LastName</label>
+                            <input type="text" class="form-control" id="StudentLastName" placeholder="Student LastName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="StudentCode">Student Address</label>
+                            <input type="text" class="form-control" id="StudentAddress" placeholder="Student Address" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="btnSave">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr />
+    <table id="tblStudent" class="table table-bordered table-striped table-responsive table-hover">
+        <thead>
+            <tr>
+                <th align="left" class="productth">ID</th>
+                <th align="left" class="productth">Student Code</th>
+                <th align="left" class="productth">Student Name</th>
+                <th align="left" class="productth">Student LastName</th>
+                <th align="left" class="productth">Student Address</th>
+                <th align="left" class="productth">Actions</th>
+
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Count > 0)
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        <td align="left" class="producttd">@item.ID</td>
+                        <td align="left" class="producttd">@item.Code</td>
+                        <td align="left" class="producttd">@item.Name</td>
+                        <td align="left" class="producttd">@item.LastName</td>
+                        <td align="left" class="producttd">@item.Address</td>
+                        <td>
+                            <button data-id="@item.ID" class="btn btn-info" id="btnEdit"><i class="glyphicon glyphicon-pencil"></i></button>
+                            <button data-id="@item.ID" class="btn btn-danger" id="btnDelete"><i class="glyphicon glyphicon-trash"></i></button>
+                        </td>
+
+                    </tr>
+                }
+            }
+            else
+            {
+
+                <tr><td colspan="6" class="text-center">No se encontraron registros</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts
+{
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+
+    <script type="text/javascript">
+        $(function () {
+            //LoadData();
+            $("#btnSave").click(function () {
+                console.log("That was clicked");
+                var student = {};
+                student.studentCode = $("#StudentCode").val();
+                student.studentName = $("#StudentName").val();
+                student.studentLastName = $("#StudentLastName").val();
+                student.studentAddress = $("#StudentAddress").val();
+
+                studentId = $('#StudentId').val();
+
+                if (studentId == '') {
+                    url = '@Url.Action("createStudent")';
+                    data = '{ student: ' + JSON.stringify(student) + '}'
+                    InsertOrUpdate(url, data);
+
+                } else {
+                    Swal.fire({
+                        title: '¿Estás seguro?',
+                        text: "Se actualizará la información de este estudiante",
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Aceptar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.value) {
+                            url = '@Url.Action("updateStudent")';
+                            data = '{ student: ' + JSON.stringify(student) + ' , id : ' + studentId + ' }';
+                            InsertOrUpdate(url, data);
+                               Swal.fire(
+                               'Actualizado',
+                               'La información del estudiante ha sido actualizada correctamente',
+                               'success'
+                               );
+                        }
+                    });
+
+                }
+                return false;
+            });
+
+            $("#btnSearch").click(function () {
+                const query = $("#myInput").val();
+
+                 $("#tblStudent tbody tr").remove();
+                 console.log("QUERY",query);
+                $.ajax({
+                    type: "POST",
+                    url: '@Url.Action("searchStudents")',
+                    dataType: "json",
+                    data: { "query" : query },
+                    success: function (data) {
+                        console.log("Data recived",data);
+                        printData(data);
+                    },
+                    error: function (ex) {
+                        console.log(ex);
+                        //var r = jQuery.parseJSON(ex.responseText);
+
+                        alert("Message: " + r.Message);
+                        alert("StackTrace: " + r.StackTrace);
+                        alert("ExceptionType: " + r.ExceptionType);
+                    }
+                });
+                return false;
+            });
+        });
+        //Insert or Update Function
+        function InsertOrUpdate(url,data) {
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: data,
+                    dataType: "json",
+                    contentType: "application/json; charset=utf-8",
+                    success: function () {
+                        LoadData();
+                    },
+                    error: function () {
+                        alert("Error while inserting data");
+                    }
+                });
+        }
+        function LoadData() {
+            $("#tblStudent tbody tr").remove();
+            $.ajax({
+                type: "POST",
+                url: '@Url.Action("getStudent")',
+                data: {id : ''},
+                dataType: "json",
+                success: function (data) {
+                    printData(data);
+                    $("#myModal").modal('hide');
+                    $("#StudentId,#StudentCode,#StudentName,#StudentLastName,#StudentAddress").val('');
+                },
+                error: function (ex) {
+                    var r = jQuery.parseJSON(ex.responseText);
+                    alert("Message: " + r.Message);
+                    alert("StackTrace: " + r.StrackTrace);
+                    alert("ExceptionType : " + r.ExceptionType);
+                }
+            });
+
+            return false;
+        }
+
+        //This function print the list of students in table
+        function printData(data) {
+            var rows = ""
+            if (data.length > 0) {
+                $.each(data, function (i, item) {
+                    rows = "<tr>"
+                        + "<td class='prtducttd'>" + item.studentID + "</td>"
+                        + "<td class='prtducttd'>" + item.studentCode + "</td>"
+                        + "<td class='prtducttd'>" + item.studentName + "</td>"
+                        + "<td class='prtducttd'>" + item.studentLastName + "</td>"
+                        + "<td class='prtducttd'>" + item.studentAddress + "</td>"
+                        + '<td><button data-id="' + item.studentID + '" class="btn btn-info" id="btnEdit"><i class="glyphicon glyphicon-pencil"></i></button>'
+                        + '<button data-id="' + item.studentID + '" class="btn btn-danger" id="btnDelete"><i class="glyphicon glyphicon-trash"></i></button></td>'
+                        + "</tr>";
+                    $('#tblStudent tbody').append(rows);
+                });
+
+            } else {
+                rows = "<tr><td colspan='6' class='text-center'>No se encontraron registros</td></tr>";
+                $('#tblStudent tbody').append(rows);
+            }
+        }
+        //Get information of Student By ID
+
+        $('#tblStudent').on('click', '#btnEdit', function () {
+            studentId = $(this).data('id');
+            console.log("Student ID ", studentId);
+            $.post('@Url.Action("studentDetail")', { id: studentId }, (data) => {
+                $('#StudentId').val(data.studentID);
+                $('#StudentCode').val(data.studentCode);
+                $('#StudentName').val(data.studentName);
+                $('#StudentLastName').val(data.studentLastName);
+                $('#StudentAddress').val(data.studentAddress);
+                $('#myModal').modal('show');
+                $('#modalTitle').text('Editar Estudiante')
+                console.log(data);
+            }).fail(function () {
+                alert("Error updating student");
+            });
+        });
+
+        //Delete Student
+        $('#tblStudent').on('click', '#btnDelete', function () {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "El estudiante será eliminado, no podrás revertir esta acción",
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Aceptar',
+                cancelButtonText: 'Cancelar'
+
+            }).then((result) => {
+               if (result.value) {
+                    studentId = $(this).data('id');
+                    console.log("Student ID ", studentId);
+                   $.post('@Url.Action("deleteStudent")', { id: studentId }, () => {
+                       LoadData();
+                       Swal.fire(
+                           'Eliminado',
+                           'El estudiante ha sido eliminado correctamente',
+                           'success'
+                       );
+                    }).fail(function () {
+                        alert("Error deleting student");
+                    });
+               }
+            });
+        });
+    </script>
+}
+
+
